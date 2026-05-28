@@ -21,40 +21,95 @@ G.opusm_tileOvW = 1
 G.opusm_tileOvH = 1 * (G.opusm_tilePY / G.opusm_tilePX)
 G.opusm_tilePixelSize = G.opusm_tileOvW / G.opusm_tilePX
 
-G.opusm_trans_base_size = { 8, 9, 10, 9, 8 }
+G.opusm_trans_board = {
+  { true, true, true, true, true, true, true, true, true, true, true, true },
+  { true, true, true, true, true, false, true, true, true, true, false, true, true },
+  { true, true, true, true, true, true, true, true, true, true, true, true, true, true },
+  { true, true, true, true, true, false, true, false, false, true, false, true, true },
+  { true, true, true, true, true, false, false, true, false, false, true, true },
+  { true, true, true, true, true, true, true, true, true, true, true },
+}
 
 function create_opus_magnum_trans_menu()
   local largest_row = -1
-  for _, v in ipairs(G.opusm_trans_base_size) do
-    if v > largest_row then largest_row = v end
+  for _, v in ipairs(G.opusm_trans_board) do
+    if #v > largest_row then largest_row = #v end
   end
+
   local rows = {}
-  for _, i in ipairs(G.opusm_trans_base_size) do
+  rows[#rows + 1] = {
+    n = G.UIT.R,
+    config = { w = 1, h = G.opusm_tileOvH, colour = G.C.RED },
+    nodes = {}
+  }
+
+  local ix = 0
+  for _, i in ipairs(G.opusm_trans_board) do
+    ix = ix + 1
     local cols = {
       n = G.UIT.R,
       config = { align = "cm", padding = -3 * G.opusm_tilePixelSize },
       nodes = {}
     }
-    if i < largest_row then cols.nodes[#cols.nodes + 1] = { n = G.UIT.B, config = { h = 0.1, w = (((G.opusm_tilePX * (largest_row - i)) + 6 - ((largest_row - i) * 3)) / 2) * G.opusm_tilePixelSize } } end
-    for j = 1, i do
-      local tile = SMODS.create_sprite(0, 0, G.opusm_tileOvW, G.opusm_tileOvH, "opusm_TileElements", { x = 0, y = 0 })
-      tile.states.drag.can = false
-      cols.nodes[#cols.nodes + 1] = {
-        n = G.UIT.C,
-        config = { padding = G.opusm_tileOvW },
-        nodes = {
-          {
-            n = G.UIT.R,
-            config = { padding = -G.opusm_tileOvW },
-            nodes = {
-              { n = G.UIT.O, config = { object = tile } },
-              { n = G.UIT.O, config = { object = Card(.1, .1, G.CARD_W * 2 * G.opusm_tilePX / 71, G.CARD_H * 2 * G.opusm_tilePY / 95, G.P_CARDS.empty, G.P_CENTERS.omelem_opusm_fire) } },
+    cols.nodes[#cols.nodes + 1] = { n = G.UIT.B, config = { h = 0.1, w = G.opusm_tileOvW } }
+    if #i < largest_row then cols.nodes[#cols.nodes + 1] = { n = G.UIT.B, config = { h = 0.1, w = (((G.opusm_tilePX * (largest_row - #i)) + 6 - ((largest_row - #i) * 3)) / 2) * G.opusm_tilePixelSize } } end
+    for j = 1, #i do
+      local added_things = {}
+
+      if G.opusm_trans_board[ix][j] then
+        local tile = SMODS.create_sprite(0, 0, G.opusm_tileOvW, G.opusm_tileOvH, "opusm_TileElements", { x = 0, y = 0 })
+        tile.states.drag.can = false
+
+        local element_card = Card(0, 0, G.opusm_tileOvW, G.opusm_tileOvH, G.P_CARDS.empty, G.P_CENTERS.omelem_opusm_fire)
+        element_card.no_shadow = true
+        element_card.states.drag.can = true
+
+        added_things[#added_things + 1] = {
+          n = G.UIT.R,
+          config = { padding = G.opusm_tileOvW },
+          nodes = {
+            {
+              n = G.UIT.C,
+              config = { padding = -G.opusm_tileOvW },
+              nodes = {
+                { n = G.UIT.O, config = { object = tile } },
+                { n = G.UIT.O, config = { object = element_card } },
+              }
             }
           }
         }
+      else
+        added_things[#added_things + 1] = {
+          n = G.UIT.R,
+          config = { padding = G.opusm_tileOvW },
+          nodes = {
+            {
+              n = G.UIT.C,
+              config = { padding = -G.opusm_tileOvW },
+              nodes = {
+                { n = G.UIT.B, config = { w = G.opusm_tileOvW, h = G.opusm_tileOvH } },
+                { n = G.UIT.B, config = { w = G.opusm_tileOvW, h = G.opusm_tileOvH } }
+              }
+            }
+          }
+        }
+      end
+
+      if ix < #i then
+        added_things[#added_things + 1] = {
+          n = G.UIT.R,
+          config = { padding = G.opusm_tileOvW / (3 / 2) },
+          nodes = {}
+        }
+      end
+
+      cols.nodes[#cols.nodes + 1] = {
+        n = G.UIT.C,
+        config = { padding = -G.opusm_tileOvW / 2 },
+        nodes = added_things
       }
     end
-    if i < largest_row then cols.nodes[#cols.nodes + 1] = { n = G.UIT.B, config = { h = 0.1, w = (((G.opusm_tilePX * (largest_row - i)) + 6 - ((largest_row - i) * 3)) / 2) * G.opusm_tilePixelSize } } end
+    if #i < largest_row then cols.nodes[#cols.nodes + 1] = { n = G.UIT.B, config = { h = 0.1, w = (((G.opusm_tilePX * (largest_row - #i)) + 6 - ((largest_row - #i) * 3)) / 2) * G.opusm_tilePixelSize } } end
     rows[#rows + 1] = cols
   end
 
